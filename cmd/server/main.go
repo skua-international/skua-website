@@ -113,6 +113,7 @@ func (al *CertAllowlist) IsAllowed(fingerprint string) bool {
 type ServerInfo struct {
 	Label      string      `json:"label"`
 	Type       string      `json:"type"`
+	Tooltip    string      `json:"tooltip,omitempty"`
 	Address    string      `json:"address"`
 	Link       htmltpl.URL `json:"link"`
 	Map        string      `json:"map"`
@@ -128,6 +129,7 @@ type GameServer struct {
 	Host      string `json:"host"`
 	GamePort  int    `json:"gamePort"`
 	QueryPort int    `json:"queryPort,omitempty"` // optional; defaults to gamePort+1 for steam, 10011 for ts3
+	Tooltip   string `json:"tooltip,omitempty"`
 }
 
 func (gs GameServer) resolvedQueryPort() int {
@@ -180,7 +182,7 @@ type ServerStatusCache struct {
 func NewServerStatusCache(servers []GameServer) *ServerStatusCache {
 	status := make([]*ServerInfo, len(servers))
 	for i, s := range servers {
-		status[i] = &ServerInfo{Label: s.Label, Type: s.Type, Address: s.displayAddr(), Link: s.displayTemplateLink(), Online: false}
+		status[i] = &ServerInfo{Label: s.Label, Type: s.Type, Tooltip: s.Tooltip, Address: s.displayAddr(), Link: s.displayTemplateLink(), Online: false}
 	}
 	return &ServerStatusCache{servers: servers, status: status}
 }
@@ -196,12 +198,13 @@ func (sc *ServerStatusCache) Refresh() {
 		}
 		if info == nil {
 			sc.mu.Lock()
-			sc.status[i] = &ServerInfo{Label: srv.Label, Type: srv.Type, Address: srv.displayAddr(), Link: srv.displayTemplateLink(), Online: false}
+			sc.status[i] = &ServerInfo{Label: srv.Label, Type: srv.Type, Tooltip: srv.Tooltip, Address: srv.displayAddr(), Link: srv.displayTemplateLink(), Online: false}
 			sc.mu.Unlock()
 			continue
 		}
 		info.Label = srv.Label
 		info.Type = srv.Type
+		info.Tooltip = srv.Tooltip
 		info.Address = srv.displayAddr()
 		info.Link = srv.displayTemplateLink()
 		info.Online = true

@@ -36,7 +36,7 @@
       {{range .Servers}}
       <div class="server-row" data-server="{{.Label}}">
         <span class="server-status-dot {{if .Online}}online{{else}}offline{{end}}"></span>
-        <span class="label">{{.Label}}</span>
+        <span class="label"{{if .Tooltip}} title="{{.Tooltip}}"{{end}}>{{.Label}}</span>
         <span class="server-detail">
           {{if .Online}}
             {{if and (ne .Type "ts3") .Map}}<span class="server-map">{{.Map}}</span>{{end}}
