@@ -5,11 +5,11 @@ services:
     container_name: skua-site
     restart: unless-stopped
     env_file: .env
+    network_mode: host
     environment:
       - CERTS_ALLOWLIST=/etc/skua/certs.allow
       - SERVERS_FILE=/etc/skua/servers.json
-    ports:
-      - "127.0.0.1:3000:3000"
+      - QUERY_HOST=127.0.0.1
     volumes:
       - ./presets:/data/presets
       - ./certs.allow:/etc/skua/certs.allow:ro
