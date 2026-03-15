@@ -1,3 +1,4 @@
+name: skua_site
 services:
   skua-site:
     build: .
