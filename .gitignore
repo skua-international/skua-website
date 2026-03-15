@@ -7,6 +7,9 @@
 nginx/certs/*.pem
 certs.allow
 
+# Environment
+.env
+
 # Presets (host-mounted)
 /presets/
 
