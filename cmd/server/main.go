@@ -188,13 +188,18 @@ func NewServerStatusCache(servers []GameServer) *ServerStatusCache {
 }
 
 func (sc *ServerStatusCache) Refresh() {
+	qh := os.Getenv("QUERY_HOST")
 	for i, srv := range sc.servers {
+		host := srv.Host
+		if qh != "" {
+			host = qh
+		}
 		var info *ServerInfo
 		switch srv.Type {
 		case "ts3":
-			info = queryTS3(srv.Host, srv.GamePort, srv.resolvedQueryPort())
+			info = queryTS3(host, srv.GamePort, srv.resolvedQueryPort())
 		default:
-			info = queryA2SInfo(srv.Host, srv.resolvedQueryPort())
+			info = queryA2SInfo(host, srv.resolvedQueryPort())
 		}
 		if info == nil {
 			sc.mu.Lock()
