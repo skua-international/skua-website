@@ -1,0 +1,6 @@
+[
+  { "label": "Ops",        "type": "steam", "host": "skua.international", "gamePort": 2302 },
+  { "label": "Persistent", "type": "steam", "host": "skua.international", "gamePort": 2402 },
+  { "label": "Training",   "type": "steam", "host": "skua.international", "gamePort": 2502 },
+  { "label": "TeamSpeak",  "type": "ts3",   "host": "skua.international", "gamePort": 9987 }
+]

@@ -1,0 +1,107 @@
+{{define "home.html"}}
+{{template "head" .}}
+
+<section class="page page-enter">
+  <header class="unit-header">
+    <img src="/static/img/logo.png" alt="Skua International" class="unit-logo">
+    <div class="unit-title">
+      <h1>Skua International</h1>
+      <p class="unit-subtitle">Private Military Company</p>
+    </div>
+  </header>
+
+  <div class="content-grid">
+    <div class="card card-wide">
+      <h2>About</h2>
+      <p class="tagline">We do more with less.</p>
+      <p>Founded in 2022, Skua operates based on the Hecate Doctrine, prioritizing speed, adaptability, and efficiency in the field. Members can expect competent leadership, training, and opportunities to develop themselves in and out of game, in all facets they choose. If you want to do it, we can make it happen, or at least point you in the right direction.</p>
+      <p>Slots and roles are not set in stone, and we encourage rotating to find and carve out your niche. That being said, no one is going to stop you from playing your favorite. Certifications are available as a means to master the game and its systems, while gaining some real-world knowledge in the process.</p>
+      <p>We do not always operate as a PMC, though this remains our identity and focus. Operations are created in-house or adapted from the Workshop to work with our custom scripting, including systems for fortification, changes to ACE Medical and other modules, a favorites system for the ACE Arsenal, and more.</p>
+      <p>Our servers, events, and operations are open to anyone so long as they respect our rules. There is no need to join us or wear our tags.</p>
+      <p class="text-muted">We acknowledge Arma as an imperfect game and treat it as such. No one is roleplaying, but we will suspend disbelief for that tank that just went flying.</p>
+    </div>
+
+    {{if .LatestVideo}}
+    <div class="card card-wide">
+      <h2>Latest Video</h2>
+      <div class="yt-embed yt-facade" data-video-id="{{.LatestVideo.ID}}" role="button" tabindex="0" aria-label="Play {{.LatestVideo.Title}}">
+        <img src="https://i.ytimg.com/vi/{{.LatestVideo.ID}}/hqdefault.jpg" alt="{{.LatestVideo.Title}}" class="yt-thumb" loading="lazy">
+        <div class="yt-play-btn" aria-hidden="true"></div>
+      </div>
+    </div>
+    {{end}}
+
+    <div class="card" id="servers-card">
+      <h2>Servers</h2>
+      {{range .Servers}}
+      <div class="server-row" data-server="{{.Label}}">
+        <span class="server-status-dot {{if .Online}}online{{else}}offline{{end}}"></span>
+        <span class="label">{{.Label}}</span>
+        <span class="server-detail">
+          {{if .Online}}
+            {{if and (ne .Type "ts3") .Map}}<span class="server-map">{{.Map}}</span>{{end}}
+            <span class="server-players">{{.Players}}/{{.MaxPlayers}}</span>
+          {{else}}
+            <span class="server-offline-text">Offline</span>
+          {{end}}
+        </span>
+        {{if .Link}}
+          <a href="{{.Link}}" class="value link" title="Connect to TeamSpeak">{{.Address}}</a>
+        {{else}}
+          <code class="value" id="server-{{.Label}}">{{.Address}}</code>
+          <button class="btn-copy" data-copy="server-{{.Label}}" title="Copy">⎘</button>
+        {{end}}
+      </div>
+      {{end}}
+    </div>
+
+    <div class="card">
+      <h2>Modlist</h2>
+      <p>We distribute modlists as Arma 3 Launcher presets (.html). Import directly into your launcher.</p>
+      <p>You can also search for "Skua Intl." in the Arma 3 Launcher and join the servers directly. Mods will be setup automatically.</p>
+      <div id="modlist-container">
+        {{if .Presets}}
+        <div class="link-list">
+          {{range .Presets}}
+          <a href="/presets/{{.Filename}}" class="link-item" download>
+            <span class="link-icon">◆</span>
+            <span>{{.Name}}</span>
+          </a>
+          {{end}}
+        </div>
+        {{else}}
+        <p class="text-muted">No preset currently uploaded. Check Discord or GitHub for the latest.</p>
+        {{end}}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Links</h2>
+      <div class="link-list">
+        <a href="https://discord.gg/z6qEYBTqKn" target="_blank" rel="noopener" class="link-item">
+          <span class="link-icon">◆</span>
+          <span>Discord</span>
+        </a>
+        <a href="https://github.com/skua-international" target="_blank" rel="noopener" class="link-item">
+          <span class="link-icon">◆</span>
+          <span>GitHub</span>
+        </a>
+        <a href="https://www.youtube.com/@SkuaIntl.PublicRelations" target="_blank" rel="noopener" class="link-item">
+          <span class="link-icon">◆</span>
+          <span>YouTube</span>
+        </a>
+        <a href="https://units.arma3.com/unit/skua" target="_blank" rel="noopener" class="link-item">
+          <span class="link-icon">◆</span>
+          <span>Arma 3 Units</span>
+        </a>
+        <a href="ts3server://skua.international" class="link-item">
+          <span class="link-icon">◆</span>
+          <span>TeamSpeak</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{{template "foot" .}}
+{{end}}

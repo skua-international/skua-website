@@ -1,0 +1,22 @@
+# Binaries
+/skua-site
+/server
+*.exe
+
+# Certs / auth (never commit)
+nginx/certs/*.pem
+certs.allow
+
+# Presets (host-mounted)
+/presets/
+
+# Node
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

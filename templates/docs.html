@@ -1,0 +1,29 @@
+{{define "docs.html"}}
+{{template "head" .}}
+
+<section class="page page-enter">
+  <div class="docs-layout">
+    <aside class="docs-sidebar" aria-label="Documentation sidebar">
+      <h3>Certifications</h3>
+      <nav aria-label="Certifications">
+        {{if .Sidebar}}
+          {{range .Sidebar}}
+            <a href="/docs/{{.Slug}}" class="docs-nav-link{{if eq .Slug $.ActiveSlug}} active{{end}}">{{.Title}}</a>
+          {{end}}
+        {{else}}
+          <p class="text-muted">No certifications available.</p>
+        {{end}}
+      </nav>
+    </aside>
+    <article class="docs-content">
+      {{if .Doc}}
+        {{.Doc.Content}}
+      {{else}}
+        <p class="text-muted">Select a document from the sidebar.</p>
+      {{end}}
+    </article>
+  </div>
+</section>
+
+{{template "foot" .}}
+{{end}}
