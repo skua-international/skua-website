@@ -7,3 +7,6 @@ var StaticFS embed.FS
 
 //go:embed templates/*.html
 var TemplateFS embed.FS
+
+//go:embed lore/*.html
+var LoreFS embed.FS

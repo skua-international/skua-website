@@ -57,6 +57,12 @@ type Preset struct {
 	Filename string `json:"filename"`
 }
 
+type LoreEntry struct {
+	Slug      string
+	Title     string
+	Operation string
+}
+
 type CertAllowlist struct {
 	mu           sync.RWMutex
 	fingerprints map[string]bool
@@ -535,6 +541,13 @@ func main() {
 	}
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticSub))))
 
+	// Lore
+	loreSub, err := fs.Sub(skuasite.LoreFS, "lore")
+	if err != nil {
+		log.Fatal(err)
+	}
+	loreEntries := loadLoreIndex(loreSub)
+
 	// Home
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -721,6 +734,42 @@ func main() {
 			"Doc":         doc,
 			"ActiveSlug":  slug,
 		})
+	})
+
+	// Lore index
+	mux.HandleFunc("/lore", func(w http.ResponseWriter, r *http.Request) {
+		render(w, r, "lore.html", map[string]any{
+			"Active":  "lore",
+			"Title":   "Lore",
+			"Path":    "/lore",
+			"Entries": loreEntries,
+		})
+	})
+
+	// Lore single page
+	mux.HandleFunc("/lore/", func(w http.ResponseWriter, r *http.Request) {
+		slug := strings.TrimPrefix(r.URL.Path, "/lore/")
+		slug = strings.TrimSuffix(slug, "/")
+
+		if slug == "" {
+			http.Redirect(w, r, "/lore", http.StatusTemporaryRedirect)
+			return
+		}
+
+		if strings.Contains(slug, "..") || strings.Contains(slug, "/") {
+			render404(w)
+			return
+		}
+
+		data, err := fs.ReadFile(loreSub, slug+".html")
+		if err != nil {
+			render404(w)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		w.Write(data)
 	})
 
 	// Refresh (POST, GitHub Action)
@@ -1080,6 +1129,52 @@ func writePreset(path string, body io.ReadCloser) error {
 		return fmt.Errorf("read body: %w", err)
 	}
 	return os.WriteFile(path, data, 0644)
+}
+
+var (
+	loreTitleRe     = regexp.MustCompile(`(?is)<title[^>]*>(.*?)</title>`)
+	loreOperationRe = regexp.MustCompile(`(?is)<meta\s+name=["']operation["']\s+content=["']([^"']*)["']`)
+)
+
+func loadLoreIndex(fsys fs.FS) []LoreEntry {
+	entries, err := fs.ReadDir(fsys, ".")
+	if err != nil {
+		log.Printf("lore: read dir: %v", err)
+		return nil
+	}
+	var lore []LoreEntry
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(strings.ToLower(e.Name()), ".html") {
+			continue
+		}
+		slug := strings.TrimSuffix(e.Name(), filepath.Ext(e.Name()))
+		title, operation := extractLoreMeta(fsys, e.Name())
+		if title == "" {
+			title = formatTitle(slug)
+		}
+		lore = append(lore, LoreEntry{Slug: slug, Title: title, Operation: operation})
+	}
+	sort.Slice(lore, func(i, j int) bool {
+		if lore[i].Operation != lore[j].Operation {
+			return lore[i].Operation < lore[j].Operation
+		}
+		return lore[i].Title < lore[j].Title
+	})
+	return lore
+}
+
+func extractLoreMeta(fsys fs.FS, name string) (title, operation string) {
+	data, err := fs.ReadFile(fsys, name)
+	if err != nil {
+		return "", ""
+	}
+	if m := loreTitleRe.FindSubmatch(data); m != nil {
+		title = strings.TrimSpace(string(m[1]))
+	}
+	if m := loreOperationRe.FindSubmatch(data); m != nil {
+		operation = strings.TrimSpace(string(m[1]))
+	}
+	return title, operation
 }
 
 func listPresets(dir string) []Preset {

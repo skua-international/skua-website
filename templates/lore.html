@@ -1,0 +1,32 @@
+{{define "lore.html"}}
+{{template "head" .}}
+
+<section class="page page-enter">
+  <header class="unit-header">
+    <div class="unit-title">
+      <h1>Lore</h1>
+      <p class="unit-subtitle">Briefings and tone-sets</p>
+    </div>
+  </header>
+
+  <div class="content-grid">
+    <div class="card card-wide">
+      {{if .Entries}}
+      <div class="link-list">
+        {{range .Entries}}
+        <a href="/lore/{{.Slug}}" class="link-item">
+          <span class="link-icon">◆</span>
+          <span>{{.Title}}</span>
+          {{if .Operation}}<span class="text-muted">— {{.Operation}}</span>{{end}}
+        </a>
+        {{end}}
+      </div>
+      {{else}}
+      <p class="text-muted">No lore entries available.</p>
+      {{end}}
+    </div>
+  </div>
+</section>
+
+{{template "foot" .}}
+{{end}}
