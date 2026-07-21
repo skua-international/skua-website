@@ -52,70 +52,15 @@ type YouTubeCache struct {
 	video *YouTubeVideo
 }
 
-type Preset struct {
-	Name     string `json:"name"`
-	Filename string `json:"filename"`
-}
-
 type LoreEntry struct {
 	Slug      string
 	Title     string
 	Operation string
 }
 
-type CertAllowlist struct {
-	mu           sync.RWMutex
-	fingerprints map[string]bool
-	path         string
-}
-
-func NewCertAllowlist(path string) *CertAllowlist {
-	al := &CertAllowlist{
-		fingerprints: make(map[string]bool),
-		path:         path,
-	}
-	al.Load()
-	return al
-}
-
-func (al *CertAllowlist) Load() {
-	al.mu.Lock()
-	defer al.mu.Unlock()
-
-	al.fingerprints = make(map[string]bool)
-
-	f, err := os.Open(al.path)
-	if err != nil {
-		log.Printf("cert allowlist: %v", err)
-		return
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		// Normalize: strip colons, lowercase.
-		fp := strings.ToLower(strings.ReplaceAll(line, ":", ""))
-		al.fingerprints[fp] = true
-	}
-
-	log.Printf("cert allowlist: loaded %d fingerprints", len(al.fingerprints))
-}
-
-func (al *CertAllowlist) IsAllowed(fingerprint string) bool {
-	if fingerprint == "" {
-		return false
-	}
-	fp := strings.ToLower(strings.ReplaceAll(fingerprint, ":", ""))
-	al.mu.RLock()
-	defer al.mu.RUnlock()
-	return al.fingerprints[fp]
-}
-
-// ServerInfo holds live status for display and the API.
+// ServerInfo holds live status for display -- rendered directly into
+// the home page, no longer exposed as its own /api/servers JSON
+// endpoint (that had no real consumer of its own).
 type ServerInfo struct {
 	Label      string      `json:"label"`
 	Type       string      `json:"type"`
@@ -481,8 +426,6 @@ var (
 func main() {
 	addr := getEnv("ADDR", ":3000")
 	ghBranch = getEnv("GITHUB_BRANCH", "main")
-	presetsDir := getEnv("PRESETS_DIR", "./presets")
-	allowlist := NewCertAllowlist(getEnv("CERTS_ALLOWLIST", "./certs.allow"))
 
 	var err error
 	templates, err = htmltpl.ParseFS(skuasite.TemplateFS, "templates/*.html")
@@ -564,120 +507,8 @@ func main() {
 			"Title":       "",
 			"Path":        "/",
 			"LatestVideo": video,
-			"Presets":     listPresets(presetsDir),
 			"Servers":     srvCache.GetAll(),
 		})
-	})
-
-	// Presets download (public)
-	mux.HandleFunc("/presets/", func(w http.ResponseWriter, r *http.Request) {
-		filename := strings.TrimPrefix(r.URL.Path, "/presets/")
-		filename = strings.TrimSuffix(filename, "/")
-
-		if filename == "" || strings.Contains(filename, "..") || strings.Contains(filename, "/") {
-			render404(w)
-			return
-		}
-
-		if !strings.HasSuffix(strings.ToLower(filename), ".html") {
-			render404(w)
-			return
-		}
-
-		path := filepath.Join(presetsDir, filename)
-		if _, err := os.Stat(path); err != nil {
-			render404(w)
-			return
-		}
-
-		w.Header().Set("Content-Disposition", "attachment; filename=\""+filename+"\"")
-		http.ServeFile(w, r, path)
-	})
-
-	// Presets API — CRUD
-	// GET /api/presets        — list all (public)
-	// POST /api/presets/{name} — create (mTLS)
-	// PUT /api/presets/{name}  — update (mTLS)
-	// DELETE /api/presets/{name} — delete (mTLS)
-	mux.HandleFunc("/api/presets", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "GET only", http.StatusMethodNotAllowed)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(listPresets(presetsDir))
-	})
-
-	mux.HandleFunc("/api/presets/", func(w http.ResponseWriter, r *http.Request) {
-		name := strings.TrimPrefix(r.URL.Path, "/api/presets/")
-		name = strings.TrimSuffix(name, "/")
-
-		if name == "" || strings.Contains(name, "..") || strings.Contains(name, "/") {
-			render404(w)
-			return
-		}
-
-		filename := name
-		if !strings.HasSuffix(strings.ToLower(filename), ".html") {
-			filename += ".html"
-		}
-		path := filepath.Join(presetsDir, filename)
-
-		// Read is public
-		if r.Method == http.MethodGet {
-			if _, err := os.Stat(path); err != nil {
-				render404(w)
-				return
-			}
-			http.ServeFile(w, r, path)
-			return
-		}
-
-		// CUD requires mTLS
-		fp := r.Header.Get("X-Client-Cert-Fingerprint")
-		if !allowlist.IsAllowed(fp) {
-			http.Error(w, "forbidden", http.StatusForbidden)
-			return
-		}
-
-		switch r.Method {
-		case http.MethodPost:
-			if _, err := os.Stat(path); err == nil {
-				http.Error(w, "preset already exists", http.StatusConflict)
-				return
-			}
-			if err := writePreset(path, r.Body); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.WriteHeader(http.StatusCreated)
-			fmt.Fprintf(w, "created %s\n", filename)
-
-		case http.MethodPut:
-			if _, err := os.Stat(path); err != nil {
-				render404(w)
-				return
-			}
-			if err := writePreset(path, r.Body); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			fmt.Fprintf(w, "updated %s\n", filename)
-
-		case http.MethodDelete:
-			if err := os.Remove(path); err != nil {
-				if os.IsNotExist(err) {
-					render404(w)
-				} else {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-				}
-				return
-			}
-			fmt.Fprintf(w, "deleted %s\n", filename)
-
-		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		}
 	})
 
 	// Docs index
@@ -790,13 +621,6 @@ func main() {
 		}
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte("ok\n"))
-	})
-
-	// Server status API (JSON)
-	mux.HandleFunc("/api/servers", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "public, max-age=30")
-		json.NewEncoder(w).Encode(srvCache.GetAll())
 	})
 
 	// Health
@@ -1122,15 +946,6 @@ func formatTitle(slug string) string {
 	return strings.Join(words, " ")
 }
 
-func writePreset(path string, body io.ReadCloser) error {
-	defer body.Close()
-	data, err := io.ReadAll(io.LimitReader(body, 2<<20)) // 2 MiB max
-	if err != nil {
-		return fmt.Errorf("read body: %w", err)
-	}
-	return os.WriteFile(path, data, 0644)
-}
-
 var (
 	loreTitleRe     = regexp.MustCompile(`(?is)<title[^>]*>(.*?)</title>`)
 	loreOperationRe = regexp.MustCompile(`(?is)<meta\s+name=["']operation["']\s+content=["']([^"']*)["']`)
@@ -1177,27 +992,6 @@ func extractLoreMeta(fsys fs.FS, name string) (title, operation string) {
 	return title, operation
 }
 
-func listPresets(dir string) []Preset {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil
-	}
-	var presets []Preset
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(strings.ToLower(e.Name()), ".html") {
-			continue
-		}
-		name := strings.TrimSuffix(e.Name(), filepath.Ext(e.Name()))
-		presets = append(presets, Preset{
-			Name:     name,
-			Filename: e.Name(),
-		})
-	}
-	sort.Slice(presets, func(i, j int) bool {
-		return presets[i].Name < presets[j].Name
-	})
-	return presets
-}
 
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {

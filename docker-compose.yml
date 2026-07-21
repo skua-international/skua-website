@@ -7,10 +7,7 @@ services:
     env_file: .env
     network_mode: host
     environment:
-      - CERTS_ALLOWLIST=/etc/skua/certs.allow
       - SERVERS_FILE=/etc/skua/servers.json
       - QUERY_HOST=127.0.0.1
     volumes:
-      - ./presets:/data/presets
-      - ./certs.allow:/etc/skua/certs.allow:ro
       - ./servers.json:/etc/skua/servers.json:ro

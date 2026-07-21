@@ -56,26 +56,6 @@
     </div>
 
     <div class="card">
-      <h2>Modlist</h2>
-      <p>We distribute modlists as Arma 3 Launcher presets (.html). Import directly into your launcher.</p>
-      <p>You can also search for "Skua Intl." in the Arma 3 Launcher and join the servers directly. Mods will be setup automatically.</p>
-      <div id="modlist-container">
-        {{if .Presets}}
-        <div class="link-list">
-          {{range .Presets}}
-          <a href="/presets/{{.Filename}}" class="link-item" download>
-            <span class="link-icon">◆</span>
-            <span>{{.Name}}</span>
-          </a>
-          {{end}}
-        </div>
-        {{else}}
-        <p class="text-muted">No preset currently uploaded. Check Discord or GitHub for the latest.</p>
-        {{end}}
-      </div>
-    </div>
-
-    <div class="card">
       <h2>Links</h2>
       <div class="link-list">
         <a href="https://discord.gg/z6qEYBTqKn" target="_blank" rel="noopener" class="link-item">

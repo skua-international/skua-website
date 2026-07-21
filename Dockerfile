@@ -22,8 +22,6 @@ ENV ADDR=:3000
 # ENV GITHUB_TOKEN=
 # Optional: shared secret for POST /api/docs/refresh
 # ENV REFRESH_SECRET=
-ENV PRESETS_DIR=/data/presets
-VOLUME /data/presets
 
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
